@@ -1,17 +1,17 @@
 
 #!/bin/bash
 # =============================================================================
-# Script Name: setup-network.sh
+# Script Name: setup-dhcp.sh
 # Author: gnu-coffee
 # Created: 2025-08-14
 # Last Modified: 2025-08-14
 # Description: Detect distro [Debian/Ubuntu is Accepted], configure DHCP network, enable & restart service
-# License: MIT License
+# License: GNU General Public License
 # =============================================================================
 
 # --- Variables ---
 SCRIPT_DIR="$(pwd)"
-LOG_FILE="${SCRIPT_DIR}/network_setup.log"
+LOG_FILE="${SCRIPT_DIR}/setup_dhcp.log"
 
 # --- Color codes ---
 GREEN='\033[0;32m'

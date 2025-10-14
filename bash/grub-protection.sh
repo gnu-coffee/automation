@@ -88,8 +88,8 @@ case "$1" in
     -s|--set-password)
         # --- Backup only if password is not already set ---
         if [[ "$CURRENT_STATUS" == "unset" ]]; then
-            cp "$FILE_40_CUSTOM" "$FILE_40_CUSTOM.orig"
-            cp "$FILE_10_LINUX" "$FILE_10_LINUX.orig"
+            cp "$FILE_40_CUSTOM" "$FILE_40_CUSTOM.orig" && chmod -x $FILE_40_CUSTOM* && chmod +x "$FILE_40_CUSTOM"
+            cp "$FILE_10_LINUX" "$FILE_10_LINUX.orig" && chmod -x $FILE_10_LINUX* && chmod +x "$FILE_10_LINUX" $FILE_10_LINUX.dpkg-dist
             success "Backup created:"
             info "\t $FILE_40_CUSTOM.orig"
             info "\t $FILE_10_LINUX.orig"
@@ -161,8 +161,8 @@ EOF
         # --- Restore from backups ---
         if [[ -f "$FILE_40_CUSTOM.orig" && -f "$FILE_10_LINUX.orig" ]]; then
             info "Restoring original GRUB files..."
-            cp "$FILE_40_CUSTOM.orig" "$FILE_40_CUSTOM"
-            cp "$FILE_10_LINUX.orig" "$FILE_10_LINUX"
+            cp "$FILE_40_CUSTOM.orig" "$FILE_40_CUSTOM" && chmod -x $FILE_40_CUSTOM* && chmod +x "$FILE_40_CUSTOM"
+            cp "$FILE_10_LINUX.orig" "$FILE_10_LINUX" && chmod -x $FILE_10_LINUX* && chmod +x "$FILE_10_LINUX" $FILE_10_LINUX.dpkg-dist
             success "Files restored."
 
             info "Updating GRUB..."

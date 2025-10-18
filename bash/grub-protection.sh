@@ -89,7 +89,7 @@ case "$1" in
         # --- Backup only if password is not already set ---
         if [[ "$CURRENT_STATUS" == "unset" ]]; then
             cp "$FILE_40_CUSTOM" "$FILE_40_CUSTOM.orig" && chmod -x $FILE_40_CUSTOM* && chmod +x "$FILE_40_CUSTOM"
-            cp "$FILE_10_LINUX" "$FILE_10_LINUX.orig" && chmod -x $FILE_10_LINUX* && chmod +x "$FILE_10_LINUX" $FILE_10_LINUX.dpkg-dist
+            cp "$FILE_10_LINUX" "$FILE_10_LINUX.orig" && chmod -x $FILE_10_LINUX* && if [ -f $FILE_10_LINUX.dpkg-dist ]; then chmod +x "$FILE_10_LINUX" $FILE_10_LINUX.dpkg-dist; fi
             success "Backup created:"
             info "\t $FILE_40_CUSTOM.orig"
             info "\t $FILE_10_LINUX.orig"
@@ -162,7 +162,7 @@ EOF
         if [[ -f "$FILE_40_CUSTOM.orig" && -f "$FILE_10_LINUX.orig" ]]; then
             info "Restoring original GRUB files..."
             cp "$FILE_40_CUSTOM.orig" "$FILE_40_CUSTOM" && chmod -x $FILE_40_CUSTOM* && chmod +x "$FILE_40_CUSTOM"
-            cp "$FILE_10_LINUX.orig" "$FILE_10_LINUX" && chmod -x $FILE_10_LINUX* && chmod +x "$FILE_10_LINUX" $FILE_10_LINUX.dpkg-dist
+            cp "$FILE_10_LINUX.orig" "$FILE_10_LINUX" && chmod -x $FILE_10_LINUX* && if [ -f $FILE_10_LINUX.dpkg-dist ]; then chmod +x "$FILE_10_LINUX" $FILE_10_LINUX.dpkg-dist; fi
             success "Files restored."
 
             info "Updating GRUB..."

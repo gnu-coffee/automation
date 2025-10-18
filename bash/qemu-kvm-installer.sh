@@ -115,6 +115,7 @@ PACKAGES=(
     hwloc
     libguestfs-tools
     virt-top
+    virtiofsd
 )
 
 for pkg in "${PACKAGES[@]}"; do

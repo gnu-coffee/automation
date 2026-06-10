@@ -116,6 +116,8 @@ PACKAGES=(
     libguestfs-tools
     virt-top
     virtiofsd
+    virtinst
+    virt-viewer
 )
 
 for pkg in "${PACKAGES[@]}"; do

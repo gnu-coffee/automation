@@ -493,11 +493,11 @@ select_python_version() {
     question "Select default Python version:"
 
     for i in "${!versions[@]}"; do
-        printf "    %d) %s\n" "$((i+1))" "${versions[$i]}"
+        echo "      [$((i + 1))] ${versions[i]}"
     done
 
     while true; do
-        read -rp "       Choice: " choice
+        read -rp "      [?] Your choice: " choice
 
         if [[ "$choice" =~ ^[0-9]+$ ]] &&
            (( choice >= 1 && choice <= ${#versions[@]} )); then
@@ -509,7 +509,47 @@ select_python_version() {
         error "Invalid selection."
     done
 
-    success "Selected: ${DEFAULT_PYTHON}"
+    success "Python version Selected: ${DEFAULT_PYTHON}"
+}
+
+# ----------------------------------------------------------
+# User selection
+# ----------------------------------------------------------
+
+select_user() {
+
+    local users=()
+    local choice
+
+    mapfile -t users < <(
+        awk -F: '
+            $3 >= 1 &&
+            $7 ~ /\/bin\/(sh|bash|zsh)$/ {
+            print $1
+            }
+        ' /etc/passwd
+        )
+
+    question "Available Users:"
+
+    for i in "${!users[@]}"; do
+        echo "      [$((i + 1))] ${users[i]}"
+    done
+
+    while true; do
+        read -rp "      [?] Your choice: " choice
+
+        if [[ "$choice" =~ ^[0-9]+$ ]] &&
+           (( choice >= 1 && choice <= ${#users[@]} )); then
+    
+            REGULAR_USER="${users[$((choice-1))]}"
+            break
+        fi
+
+        error "Invalid selection."
+    done
+
+    success "Username Selected: ${REGULAR_USER}"
 }
 
 # ----------------------------------------------------------
@@ -518,7 +558,6 @@ select_python_version() {
 
 configure_user_environment() {
 
-    local user
     local home_dir
     local user_group
 
@@ -527,12 +566,6 @@ configure_user_environment() {
 
     script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     env_dir="${script_dir}/environment"
-
-    if ! id "$REGULAR_USER" &>/dev/null; then
-        error "User '$REGULAR_USER' does not exist."
-        log "ERROR" "User '$REGULAR_USER' does not exist."
-        return 1
-    fi
 
     info "Setting timezone to Asia/Tehran..."
 
@@ -586,14 +619,27 @@ EOF
 # ----------------------------------------------------------
 
 confirm() {
-
     local prompt="$1"
+    local answer
 
     echo
     question "$prompt"
-    read -rp "      [y/n]: " answer
 
-    [[ "${answer,,}" == "y" ]]
+    while true; do
+        read -rp "      [y/n]: " answer
+
+        case "${answer,,}" in
+            y)
+                return 0
+                ;;
+            n)
+                return 1
+                ;;
+            *)
+                error "Please enter y or n."
+                ;;
+        esac
+    done
 }
 
 # ----------------------------------------------------------
@@ -606,31 +652,55 @@ run_wizard() {
     # ----------------------------------
     # Asking for repos
     # ----------------------------------
-    confirm "Configure repositories?"      && TASKS+=("repo")
+    confirm "Configure repositories?" && TASKS+=("repo")
     if [[ " ${TASKS[*]} " =~ " repo " ]]; then
+        while true; do
+            echo
+            question "Repository branch:"
+            echo "      [1] Stable"
+            echo "      [2] Testing"
+
+            read -rp "          Select option: " REPOSITORY_BRANCH
+
+            case "$REPOSITORY_BRANCH" in
+                1)
+                    BRANCH="stable"
+                    break
+                    ;;
+                2)
+                    BRANCH="testing"
+                    break
+                    ;;
+                *)
+                    error "Invalid branch!"
+                    ;;
+            esac
+        done
+
         echo
-        question "Repository branch:"
-        echo "      [1] Stable"
-        echo "      [2] Testing"
-        read -rp "          Select option: " REPOSITORY_BRANCH
 
-        case "$REPOSITORY_BRANCH" in
-            1) BRANCH="stable" ;;
-            2) BRANCH="testing" ;;
-            *) error "Invalid branch!"; return 1 ;;
-        esac
+        while true; do
+            echo
+            question "Repository source:"
+            echo "      [1] Debian Official"
+            echo "      [2] Shatel Mirror"
+        
+            read -rp "          Select option: " MIRROR_CHOICE
 
-        echo
-        question "Repository source:"
-        echo "      [1] Debian Official"
-        echo "      [2] Shatel Mirror"
-        read -rp "          Select option: " MIRROR_CHOICE
-
-        case "$MIRROR_CHOICE" in
-            1) MIRROR="debian" ;;
-            2) MIRROR="shatel" ;;
-            *) error "Invalid mirror!"; return 1 ;;
-        esac
+            case "$MIRROR_CHOICE" in
+                1)
+                    MIRROR="debian"
+                    break
+                    ;;
+                2)
+                    MIRROR="shatel"
+                    break
+                    ;;
+                *)
+                    error "Invalid mirror!"
+                    ;;
+            esac
+        done
 
     fi
 
@@ -639,8 +709,7 @@ run_wizard() {
     if [[ " ${TASKS[*]} " =~ " env " ]]; then
         select_python_version
         echo
-        question "Enter regular username"
-        read -rp "     Username: " REGULAR_USER 
+        select_user
     fi
     echo
     info "Executing selected tasks..."
@@ -664,9 +733,8 @@ run_wizard() {
     
         esac
     done
-
-
 }
+
 # ----------------------------------------------------------
 # Main
 # ----------------------------------------------------------

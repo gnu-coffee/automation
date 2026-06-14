@@ -10,10 +10,10 @@ YELLOW='\033[0;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-ok()   { echo -e "${GREEN}[+]${NC} $1"; }
-info() { echo -e "${CYAN}[*]${NC} $1"; }
-warn() { echo -e "${YELLOW}[!]${NC} $1"; }
-err()  { echo -e "${RED}[-]${NC} $1"; }
+ok()   { echo -e "${GREEN} [+]${NC} $1"; }
+info() { echo -e "${CYAN} [*]${NC} $1"; }
+warn() { echo -e "${YELLOW} [!]${NC} $1"; }
+err()  { echo -e "${RED} [-]${NC} $1"; }
 
 trap 'err "FAILED at line $LINENO"' ERR
 
@@ -79,7 +79,7 @@ mkdir -p "$WORKDIR"
 trap 'rm -rf "$WORKDIR"' EXIT
 
 # ==========================================================
-# Detect active mirror (IMPORTANT LOGIC)
+# Detect active mirror
 # ==========================================================
 
 info "Detecting active system mirror..."
@@ -126,7 +126,7 @@ done
 # ==========================================================
 
 echo "======================================"
-echo " Debian Mirror Audit (Active mode)"
+echo " Debian Mirror Audit"
 echo " Mirror: $ACTIVE"
 echo " Release: $RELEASE | Arch: $ARCH"
 echo "======================================"
@@ -176,8 +176,8 @@ info "[2] Signature check"
 
 KEYRING="/usr/share/keyrings/debian-archive-keyring.gpg"
 
-gpgv --keyring "$KEYRING" "$OFF" >/dev/null 2>&1 && echo "        Official: OK" || echo "        Official: FAIL"
-gpgv --keyring "$KEYRING" "$ACT" >/dev/null 2>&1 && echo "        Active:   OK" || echo "        Active:   FAIL"
+gpgv --keyring "$KEYRING" "$OFF" >/dev/null 2>&1 && ok "    Official: OK" || err "    Official: FAIL"
+gpgv --keyring "$KEYRING" "$ACT" >/dev/null 2>&1 && ok "    Active:   OK" || err "    Active:   FAIL"
 
 # ==========================================================
 # Step 3 - Integrity
@@ -189,9 +189,9 @@ OFF_SHA=$(extract_sha "$OFF")
 ACT_SHA=$(extract_sha "$ACT")
 
 if [[ "$OFF_SHA" == "$ACT_SHA" ]]; then
-    echo "        MATCH"
+    ok "    MATCH"
 else
-    echo "        MISMATCH"
+    err "    MISMATCH"
 fi
 
 # ==========================================================
@@ -208,7 +208,7 @@ ACT_TS=$(date -d "$ACT_DATE" +%s 2>/dev/null || echo 0)
 
 DELAY=$(((OFF_TS - ACT_TS) / 3600))
 
-echo "        Delay: ${DELAY}h"
+warn "    Delay: ${DELAY}h"
 
 # ==========================================================
 # Step 5 - Security
@@ -227,7 +227,7 @@ SEC_ACT_TS=$(date -d "$(get_date "$SEC_ACT")" +%s 2>/dev/null || echo 0)
 
 SEC_DELAY=$(((SEC_OFF_TS - SEC_ACT_TS) / 3600))
 
-echo "        Security delay: ${SEC_DELAY}h"
+warn "    Security delay: ${SEC_DELAY}h"
 
 # ==========================================================
 # Step 6 - Package drift
@@ -246,7 +246,7 @@ zcat "$WORKDIR/act.gz" 2>/dev/null | grep "^Package:" | sort > "$ACT_P" || true
 
 DIFF=$(diff "$OFF_P" "$ACT_P" 2>/dev/null | wc -l || true)
 
-echo "        Drift: $DIFF"
+warn "    Drift: $DIFF"
 
 # ==========================================================
 # Step 7 - Score
@@ -266,21 +266,21 @@ SCORE=100
 echo "======================================"
 echo " RESULT"
 echo "======================================"
-echo "Active mirror: $ACTIVE"
-echo "Release:       $RELEASE"
-echo "Arch:          $ARCH"
-echo "Delay:         ${DELAY}h"
-echo "Security:      ${SEC_DELAY}h"
-echo "Drift:         $DIFF"
-echo "Score:         $SCORE/100"
+echo " Active mirror: $ACTIVE"
+echo " Release:       $RELEASE"
+echo " Arch:          $ARCH"
+echo " Delay:         ${DELAY}h"
+echo " Security:      ${SEC_DELAY}h"
+echo " Drift:         $DIFF"
+echo " Score:         $SCORE/100"
 echo "======================================"
 
 if [[ $SCORE -ge 90 ]]; then
-    echo "STATUS: HEALTHY"
+    ok "STATUS: HEALTHY"
 elif [[ $SCORE -ge 70 ]]; then
-    echo "STATUS: ACCEPTABLE"
+    ok "STATUS: ACCEPTABLE"
 else
-    echo "STATUS: RISKY"
+    err "STATUS: RISKY"
 fi
 
 echo "======================================"

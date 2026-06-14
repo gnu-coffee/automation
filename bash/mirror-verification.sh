@@ -1,159 +1,286 @@
 #!/bin/bash
 set -euo pipefail
 
-OFFICIAL="https://deb.debian.org/debian"
-SECURITY_OFFICIAL="https://security.debian.org/debian-security"
+# ==========================================================
+# Colors
+# ==========================================================
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
 
-MIRROR="https://mirror.shatel.ir/debian"
-SECURITY_MIRROR="https://mirror.shatel.ir/debian-security"
+ok()   { echo -e "${GREEN}[+]${NC} $1"; }
+info() { echo -e "${CYAN}[*]${NC} $1"; }
+warn() { echo -e "${YELLOW}[!]${NC} $1"; }
+err()  { echo -e "${RED}[-]${NC} $1"; }
+
+trap 'err "FAILED at line $LINENO"' ERR
+
+# ==========================================================
+# System constraints
+# ==========================================================
+
+ARCH="$(dpkg --print-architecture)"
+[[ "$ARCH" != "amd64" ]] && err "Only amd64 supported!" && exit 1
+
+# Detect release from system
+RELEASE=$(grep -R "^Suites:" /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null \
+  | awk '{for(i=2;i<=NF;i++) print $i}' \
+  | grep -E "stable|testing|unstable|bookworm|trixie" \
+  | head -n1 || true)
+
+ALLOWED=0
+
+for r in $RELEASE; do
+    case "$r" in
+        stable|testing|unstable|bookworm|trixie)
+            ALLOWED=1
+            ;;
+        *)
+            err "Invalid APT release detected: $r"
+            exit 1
+            ;;
+    esac
+done
+
+if [[ -z "$RELEASE" ]]; then
+    err "No APT release detected"
+    exit 1
+fi
+
+ok "APT release is valid: $RELEASE"
+
+# ==========================================================
+# Mirror dictionary (EASILY EXTENDABLE)
+# ==========================================================
+
+declare -A MIRRORS=(
+    ["shatel"]="https://mirror.shatel.ir/debian"
+    ["parspack"]="https://repo.abrha.net/debian"
+    ["arvancloud"]="https://mirror.arvancloud.ir/debian"
+)
+
+declare -A SECURITY_MIRRORS=(
+    ["shatel"]="https://mirror.shatel.ir/debian-security"
+    ["parspack"]="https://repo.abrha.net/debian-security"
+    ["arvancloud"]="https://mirror.arvancloud.ir/debian-security "
+)
+
+OFFICIAL="https://deb.debian.org/debian"
+SEC_OFFICIAL="https://security.debian.org/debian-security"
+
+# ==========================================================
+# Workdir
+# ==========================================================
+
 WORKDIR="/tmp/repo-audit"
 mkdir -p "$WORKDIR"
+trap 'rm -rf "$WORKDIR"' EXIT
 
-OFF="$WORKDIR/official.InRelease"
-MIR="$WORKDIR/mirror.InRelease"
+# ==========================================================
+# Detect active mirror (IMPORTANT LOGIC)
+# ==========================================================
+
+info "Detecting active system mirror..."
+POLICY_OUTPUT=$(apt-cache policy)
+
+ACTIVE=""
+
+while read -r line; do
+    case "$line" in
+        *shatel*)
+            ACTIVE="shatel"
+            ;;
+        *abrha*)
+            ACTIVE="parspack"
+            ;;
+        *arvancloud*)
+            ACTIVE="arvancloud"
+            ;;
+    esac
+done <<< "$POLICY_OUTPUT"
+
+if [[ -z "$ACTIVE" ]]; then
+    err "No known mirror detected in apt-cache policy"
+    exit 1
+fi
+
+ok "Detected mirror: $ACTIVE"
+
+MIRROR="${MIRRORS[$ACTIVE]}"
+SECURITY_MIRROR="${SECURITY_MIRRORS[$ACTIVE]}"
+
+# ==========================================================
+# Components check (non-blocking)
+# ==========================================================
+
+info "Checking APT components..."
+
+for c in main contrib non-free non-free-firmware; do
+    grep -Rq "$c" /etc/apt 2>/dev/null || warn "Missing component: $c"
+done
+
+# ==========================================================
+# Header
+# ==========================================================
 
 echo "======================================"
-echo " Debian Mirror Audit (7-Layer Check)"
+echo " Debian Mirror Audit (Active mode)"
+echo " Mirror: $ACTIVE"
+echo " Release: $RELEASE | Arch: $ARCH"
 echo "======================================"
 
-########################################
-# LAYER 1 - FETCH SNAPSHOTS
-########################################
-echo "[1] Fetching InRelease files..."
+# ==========================================================
+# Safe fetch
+# ==========================================================
 
-curl -fsSL "$OFFICIAL/dists/stable/InRelease" -o "$OFF"
-curl -fsSL "$MIRROR/dists/stable/InRelease" -o "$MIR"
+fetch() {
+    curl -fsSL --retry 2 --max-time 60 "$1" -o "$2" || {
+        warn "Fetch failed: $1"
+        return 1
+    }
+}
 
-########################################
-# LAYER 2 - SIGNATURE CHECK
-########################################
-echo "[2] Verifying GPG signatures..."
+# ==========================================================
+# Helpers
+# ==========================================================
 
-if gpgv --keyring /usr/share/keyrings/debian-archive-keyring.gpg "$OFF" >/dev/null 2>&1; then
-    echo "  official: OK"
+extract_sha() {
+    grep -A1 "SHA256" "$1" 2>/dev/null | tail -n +2 | sha256sum | awk '{print $1}' || echo "0"
+}
+
+get_date() {
+    grep "^Date:" "$1" 2>/dev/null | cut -d' ' -f2- || echo ""
+}
+
+# ==========================================================
+# Step 1 - Fetch ONLY active + official
+# ==========================================================
+
+info "[1] Fetching metadata..."
+
+OFF="$WORKDIR/official"
+ACT="$WORKDIR/active"
+
+fetch "$OFFICIAL/dists/$RELEASE/InRelease" "$OFF"
+fetch "$MIRROR/dists/$RELEASE/InRelease" "$ACT"
+
+ok "    Metadata fetched"
+
+# ==========================================================
+# Step 2 - Signature check
+# ==========================================================
+
+info "[2] Signature check"
+
+KEYRING="/usr/share/keyrings/debian-archive-keyring.gpg"
+
+gpgv --keyring "$KEYRING" "$OFF" >/dev/null 2>&1 && echo "        Official: OK" || echo "        Official: FAIL"
+gpgv --keyring "$KEYRING" "$ACT" >/dev/null 2>&1 && echo "        Active:   OK" || echo "        Active:   FAIL"
+
+# ==========================================================
+# Step 3 - Integrity
+# ==========================================================
+
+info "[3] Integrity check"
+
+OFF_SHA=$(extract_sha "$OFF")
+ACT_SHA=$(extract_sha "$ACT")
+
+if [[ "$OFF_SHA" == "$ACT_SHA" ]]; then
+    echo "        MATCH"
 else
-    echo "  official: FAIL"
+    echo "        MISMATCH"
 fi
 
-if gpgv --keyring /usr/share/keyrings/debian-archive-keyring.gpg "$MIR" >/dev/null 2>&1; then
-    echo "  mirror: OK"
-else
-    echo "  mirror: FAIL"
-fi
+# ==========================================================
+# Step 4 - Freshness
+# ==========================================================
 
-########################################
-# LAYER 3 - METADATA DIFF (CORRUPTION CHECK)
-########################################
-echo "[3] Checking metadata consistency..."
+info "[4] Freshness"
 
-OFF_SHA=$(grep -A1 "SHA256" "$OFF" | tail -n +2 | sha256sum | awk '{print $1}')
-MIR_SHA=$(grep -A1 "SHA256" "$MIR" | tail -n +2 | sha256sum | awk '{print $1}')
+OFF_DATE=$(get_date "$OFF")
+ACT_DATE=$(get_date "$ACT")
 
-if [[ "$OFF_SHA" == "$MIR_SHA" ]]; then
-    echo "  SHA256 metadata: MATCH"
-else
-    echo "  SHA256 metadata: MISMATCH (possible corruption or drift)"
-fi
+OFF_TS=$(date -d "$OFF_DATE" +%s 2>/dev/null || echo 0)
+ACT_TS=$(date -d "$ACT_DATE" +%s 2>/dev/null || echo 0)
 
-########################################
-# LAYER 4 - FRESHNESS (GENERAL DELAY)
-########################################
-echo "[4] Checking repository freshness..."
+DELAY=$(((OFF_TS - ACT_TS) / 3600))
 
-OFF_DATE=$(grep "^Date:" "$OFF" | cut -d' ' -f2-)
-MIR_DATE=$(grep "^Date:" "$MIR" | cut -d' ' -f2-)
+echo "        Delay: ${DELAY}h"
 
-OFF_TS=$(date -d "$OFF_DATE" +%s)
-MIR_TS=$(date -d "$MIR_DATE" +%s)
+# ==========================================================
+# Step 5 - Security
+# ==========================================================
 
-DELAY=$((OFF_TS - MIR_TS))
-DELAY_H=$((DELAY / 3600))
+info "[5] Security check"
 
-echo "  Official Date: $OFF_DATE"
-echo "  Mirror Date:   $MIR_DATE"
-echo "  Delay:         $DELAY_H hours"
+SEC_OFF="$WORKDIR/sec_off"
+SEC_ACT="$WORKDIR/sec_act"
 
-########################################
-# LAYER 5 - SECURITY REPO CHECK
-########################################
-echo "[5] Checking security repo freshness..."
+fetch "$SEC_OFFICIAL/dists/${RELEASE}-security/InRelease" "$SEC_OFF"
+fetch "${SECURITY_MIRRORS[$ACTIVE]}/dists/${RELEASE}-security/InRelease" "$SEC_ACT"
 
-SEC_OFF="$WORKDIR/sec_off.InRelease"
-SEC_MIR="$WORKDIR/sec_mir.InRelease"
+SEC_OFF_TS=$(date -d "$(get_date "$SEC_OFF")" +%s 2>/dev/null || echo 0)
+SEC_ACT_TS=$(date -d "$(get_date "$SEC_ACT")" +%s 2>/dev/null || echo 0)
 
-curl -fsSL "$SECURITY_OFFICIAL/dists/stable-security/InRelease" -o "$SEC_OFF"
-curl -fsSL "$SECURITY_MIRROR/dists/stable-security/InRelease" -o "$SEC_MIR"
+SEC_DELAY=$(((SEC_OFF_TS - SEC_ACT_TS) / 3600))
 
-SEC_OFF_DATE=$(grep "^Date:" "$SEC_OFF" | cut -d' ' -f2-)
-SEC_MIR_DATE=$(grep "^Date:" "$SEC_MIR" | cut -d' ' -f2-)
+echo "        Security delay: ${SEC_DELAY}h"
 
-SEC_OFF_TS=$(date -d "$SEC_OFF_DATE" +%s)
-SEC_MIR_TS=$(date -d "$SEC_MIR_DATE" +%s)
+# ==========================================================
+# Step 6 - Package drift
+# ==========================================================
 
-SEC_DELAY_H=$(((SEC_OFF_TS - SEC_MIR_TS) / 3600))
+info "[6] Package drift"
 
-echo "  Security delay: $SEC_DELAY_H hours"
+OFF_P="$WORKDIR/off.pack"
+ACT_P="$WORKDIR/act.pack"
 
-########################################
-# LAYER 6 - COMPLETENESS CHECK (FILE LIST DRIFT)
-########################################
-echo "[6] Checking package index consistency..."
+fetch "$OFFICIAL/dists/$RELEASE/main/binary-$ARCH/Packages.gz" "$WORKDIR/off.gz"
+fetch "$MIRROR/dists/$RELEASE/main/binary-$ARCH/Packages.gz" "$WORKDIR/act.gz"
 
-OFF_PACKAGES="$WORKDIR/off.packages"
-MIR_PACKAGES="$WORKDIR/mir.packages"
+zcat "$WORKDIR/off.gz" 2>/dev/null | grep "^Package:" | sort > "$OFF_P" || true
+zcat "$WORKDIR/act.gz" 2>/dev/null | grep "^Package:" | sort > "$ACT_P" || true
 
-curl -fsSL "$OFFICIAL/dists/stable/main/binary-amd64/Packages.gz" | zcat | grep "^Package:" | sort > "$OFF_PACKAGES"
-curl -fsSL "$MIRROR/dists/stable/main/binary-amd64/Packages.gz" | zcat | grep "^Package:" | sort > "$MIR_PACKAGES"
+DIFF=$(diff "$OFF_P" "$ACT_P" 2>/dev/null | wc -l || true)
 
-DIFF_COUNT=$(diff "$OFF_PACKAGES" "$MIR_PACKAGES" | wc -l)
+echo "        Drift: $DIFF"
 
-if [[ "$DIFF_COUNT" -eq 0 ]]; then
-    echo "  Package list: IDENTICAL"
-else
-    echo "  Package drift detected: $DIFF_COUNT differences"
-fi
+# ==========================================================
+# Step 7 - Score
+# ==========================================================
 
-########################################
-# LAYER 7 - FINAL RISK SCORE
-########################################
-echo "[7] Risk scoring..."
+info "[7] Score"
 
 SCORE=100
 
-# corruption penalty
-if [[ "$OFF_SHA" != "$MIR_SHA" ]]; then
-    SCORE=$((SCORE - 40))
-fi
+[[ "$OFF_SHA" != "$ACT_SHA" ]] && SCORE=$((SCORE - 40))
+[[ "$DELAY" -gt 2 ]] && SCORE=$((SCORE - 20))
+[[ "$SEC_DELAY" -gt 1 ]] && SCORE=$((SCORE - 30))
+[[ "$DIFF" -gt 0 ]] && SCORE=$((SCORE - 10))
 
-# delay penalty
-if [[ "$DELAY_H" -gt 2 ]]; then
-    SCORE=$((SCORE - 20))
-fi
-
-# security delay penalty
-if [[ "$SEC_DELAY_H" -gt 1 ]]; then
-    SCORE=$((SCORE - 30))
-fi
-
-# drift penalty
-if [[ "$DIFF_COUNT" -gt 0 ]]; then
-    SCORE=$((SCORE - 10))
-fi
+(( SCORE < 0 )) && SCORE=0
 
 echo "======================================"
-echo " FINAL RESULT"
+echo " RESULT"
 echo "======================================"
-echo "Integrity delay:   ${DELAY_H}h"
-echo "Security delay:    ${SEC_DELAY_H}h"
-echo "Package drift:     ${DIFF_COUNT}"
-echo "Risk score:        ${SCORE}/100"
+echo "Active mirror: $ACTIVE"
+echo "Release:       $RELEASE"
+echo "Arch:          $ARCH"
+echo "Delay:         ${DELAY}h"
+echo "Security:      ${SEC_DELAY}h"
+echo "Drift:         $DIFF"
+echo "Score:         $SCORE/100"
+echo "======================================"
 
-if [[ "$SCORE" -ge 90 ]]; then
+if [[ $SCORE -ge 90 ]]; then
     echo "STATUS: HEALTHY"
-elif [[ "$SCORE" -ge 70 ]]; then
-    echo "STATUS: ACCEPTABLE (monitor)"
+elif [[ $SCORE -ge 70 ]]; then
+    echo "STATUS: ACCEPTABLE"
 else
-    echo "STATUS: UNTRUSTWORTHY MIRROR"
+    echo "STATUS: RISKY"
 fi
 
 echo "======================================"

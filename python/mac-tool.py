@@ -107,18 +107,14 @@ def select_vendor():
 
     vendors = list(VENDORS.keys())
 
-    print()
-
     for i, vendor in enumerate(vendors, start=1):
         print(f"     [{i}] {vendor}")
-
-    print()
 
     while True:
 
         try:
 
-            choice = int(input(" [*] Select Vendor: "))
+            choice = int(input(" [?] Select Vendor: "))
 
             if 1 <= choice <= len(vendors):
                 return vendors[choice - 1]
@@ -158,7 +154,7 @@ def ask_count():
 
 def generator_mode():
 
-    print(" [*] Please choose the vendor:")
+    print(" [*] Vendor List:")
     vendor = select_vendor()
 
     count = ask_count()

@@ -140,15 +140,15 @@ def ask_count():
 
         try:
 
-            count = int(input(" [?] How many MACs you want to generate? "))
+            count = int(input(" [?] Number of MACs to generate: "))
 
             if count > 0:
                 return count
 
-            print(" [-] Number must be greater than zero.")
+            print(" [-] Number must be greater than zero!")
 
         except ValueError:
-            print(" [-] Invalid input.")
+            print(" [-] Invalid input!")
 
 
 # ----------------------------------------------------

@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
 
+# =============================================================================
+# Script Name: mac-tool.py
+# Author: gnu-coffee
+# Created: 2026-06-30
+# Description: Generate and Resolve MAC addresses
+# License: GNU General Public License v3 (GPLv3)
+# =============================================================================
+
 import argparse
 import re
 import secrets

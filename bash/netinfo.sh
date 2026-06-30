@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =============================================================================
-# Script Name: grub-protection.sh
+# Script Name: netinfo.sh
 # Author: gnu-coffee
 # Created: 2026-06-30
 # Description: Show Network Interfaces Information On every linux distros

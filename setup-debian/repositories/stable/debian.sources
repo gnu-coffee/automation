@@ -14,6 +14,13 @@ Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 
 # Modernized from /etc/apt/sources.list
 Types: deb deb-src
+URIs: https://deb.debian.org/debian
+Suites: stable-backports
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+
+# Modernized from /etc/apt/sources.list
+Types: deb deb-src
 URIs: https://security.debian.org/debian-security
 Suites: stable-security
 Components: main

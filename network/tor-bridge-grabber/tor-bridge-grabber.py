@@ -90,7 +90,7 @@ def main():
     bridges = soup.find("div", id="bridgelines")
 
     if bridges is None:
-        print(" [-] bridgelines div not found.")
+        print(" [-] bridgelines div not found!")
         return
 
     existing = load_existing_fingerprints()
@@ -107,14 +107,12 @@ def main():
             new_bridges.append(line)
 
     if not new_bridges:
-        print(" [-] No new bridges found.")
+        print(" [-] No new bridges found!")
         return
 
-    print(" [+] New bridges:\n")
-
+    print(" [+] New bridges:")
     for bridge in new_bridges:
-        print(bridge)
-
+        print(f"\t"+bridge)
 
 if __name__ == "__main__":
     main()

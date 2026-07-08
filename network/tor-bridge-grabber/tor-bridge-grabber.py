@@ -7,10 +7,9 @@
 # License: GNU General Public License v3 (GPLv3)
 # =============================================================================
 
-#!/usr/bin/env python3
-
-import argparse
 import re
+import sys
+import argparse
 import requests
 from bs4 import BeautifulSoup
 
@@ -81,16 +80,38 @@ def main():
         # "http": proxy,
         "https": proxy,
     }
+    
+    try:
+        response = session.get(URL, timeout=30)
+        response.raise_for_status()
+    except requests.exceptions.ConnectionError:
+        print(
+            " [-] Error: Unable to connect to the Tor SOCKS proxy.\n"
+            "     Please make sure:\n"
+            "         - Tor is running.\n"
+            "         - The SOCKS port is correct.\n"
+            "         - Tor is listening on 127.0.0.1."
+        )
+        sys.exit(1)
 
-    response = session.get(URL, timeout=30)
-    response.raise_for_status()
+    except requests.exceptions.Timeout:
+        print("Error: Connection timed out.")
+        sys.exit(1)
+    
+    except requests.exceptions.HTTPError as e:
+        print(f"HTTP error: {e.response.status_code}")
+        sys.exit(1)
+
+    except requests.exceptions.RequestException as e:
+        print(f"Request failed: {e}")
+        sys.exit(1) 
 
     soup = BeautifulSoup(response.text, "html.parser")
 
     bridges = soup.find("div", id="bridgelines")
 
     if bridges is None:
-        print(" [-] bridgelines div not found!")
+        print(" [-] Error: The bridgelines div not found!")
         return
 
     existing = load_existing_fingerprints()
@@ -107,7 +128,7 @@ def main():
             new_bridges.append(line)
 
     if not new_bridges:
-        print(" [-] No new bridges found!")
+        print(" [*] No new bridges found!")
         return
 
     print(" [+] New bridges:")

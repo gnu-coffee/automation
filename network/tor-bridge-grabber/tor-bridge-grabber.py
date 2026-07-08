@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 # =============================================================================
-# Script Name: bridge-fetch.py
+# Script Name: tor-bridge-grabber.py
 # Author: gnu-coffee
 # Created: 2026-07-08
-# Description: You can grab TOR bridges by this scritp easily. But remember running tor on your machine is required!
+# Description: This is easy way to grab tor bridges. But remember you need to run tor service on your machine first!
 # License: GNU General Public License v3 (GPLv3)
 # =============================================================================
+
+#!/usr/bin/env python3
 
 import argparse
 import re

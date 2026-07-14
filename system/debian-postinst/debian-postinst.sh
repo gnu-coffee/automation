@@ -389,6 +389,7 @@ configure_repositories() {
     info "Backing up existing repository configuration..."
 
     rm -f /etc/apt/sources.list~
+    rm -f /etc/apt/sources.list
 
     if [[ -f /etc/apt/sources.list ]]; then
         cp -f \

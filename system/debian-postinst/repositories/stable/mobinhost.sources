@@ -1,0 +1,23 @@
+Types: deb deb-src
+URIs: https://mirror.mobinhost.com/debian
+Suites: stable
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+
+Types: deb deb-src
+URIs: https://mirror.mobinhost.com/debian
+Suites: stable-updates
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+
+Types: deb deb-src
+URIs: https://mirror.mobinhost.com/debian
+Suites: stable-backports
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+
+Types: deb deb-src
+URIs: https://mirror.mobinhost.com/debian-security
+Suites: stable-security
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg

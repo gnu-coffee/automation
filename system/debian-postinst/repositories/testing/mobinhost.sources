@@ -1,0 +1,5 @@
+Types: deb deb-src
+URIs: https://mirror.mobinhost.com/debian
+Suites: testing
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg

@@ -347,7 +347,7 @@ validate_project_structure() {
     fi
 
     for branch in stable testing; do
-        for mirror in debian shatel; do
+        for mirror in debian mobinhost; do
 
             local file_path="$repo_dir/$branch/$mirror.sources"
 
@@ -684,7 +684,7 @@ run_wizard() {
             echo
             question "Repository source:"
             echo "      [1] Debian Official"
-            echo "      [2] Shatel Mirror"
+            echo "      [2] Mobinhost Mirror"
         
             read -rp "          Select option: " MIRROR_CHOICE
 
@@ -694,7 +694,7 @@ run_wizard() {
                     break
                     ;;
                 2)
-                    MIRROR="shatel"
+                    MIRROR="mobinhost"
                     break
                     ;;
                 *)

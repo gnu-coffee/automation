@@ -1,20 +1,5 @@
-# Modernized from /etc/apt/sources.list
 Types: deb deb-src
 URIs: https://deb.debian.org/debian
 Suites: testing
-Components: main
-Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
-
-# Modernized from /etc/apt/sources.list
-Types: deb deb-src
-URIs: https://deb.debian.org/debian
-Suites: testing-updates
-Components: main
-Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
-
-# Modernized from /etc/apt/sources.list
-Types: deb deb-src
-URIs: https://security.debian.org/debian-security
-Suites: testing-security
 Components: main
 Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg

@@ -56,13 +56,13 @@ ok "APT release is valid: $RELEASE"
 # ==========================================================
 
 declare -A MIRRORS=(
-    ["shatel"]="https://mirror.shatel.ir/debian"
+    ["mobinhost"]="https://mirror.mobinhost.com/debian"
     ["parspack"]="https://repo.abrha.net/debian"
     ["arvancloud"]="https://mirror.arvancloud.ir/debian"
 )
 
 declare -A SECURITY_MIRRORS=(
-    ["shatel"]="https://mirror.shatel.ir/debian-security"
+    ["mobinhost"]="https://mirror.mobinhost.com/debian-security"
     ["parspack"]="https://repo.abrha.net/debian-security"
     ["arvancloud"]="https://mirror.arvancloud.ir/debian-security "
 )
@@ -89,8 +89,8 @@ ACTIVE=""
 
 while read -r line; do
     case "$line" in
-        *shatel*)
-            ACTIVE="shatel"
+        *mobinhost*)
+            ACTIVE="mobinhost"
             ;;
         *abrha*)
             ACTIVE="parspack"

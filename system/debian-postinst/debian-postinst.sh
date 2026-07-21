@@ -452,7 +452,7 @@ install_essential_packages() {
     info "Installing essential packages..."
 
     local packages=(
-        apt-offline conntrack python3 python3-pip age parted psmisc lsof file man man-db apt-utils vim tree less curl wget gnupg gpg ca-certificates lsb-release apt-transport-https git zip unzip bash-completion util-linux grub-common bsdextrautils mokutil htop iotop mtr iftop sysstat procps  iproute2 bind9-dnsutils traceroute tcpdump iputils-ping bridge-utils iptables resolvconf firewalld smartmontools net-tools ncat gnupg2
+        apt-offline conntrack python3 python3-pip age parted psmisc lsof file man man-db apt-utils vim tree less curl wget gnupg gpg ca-certificates lsb-release apt-transport-https git zip unzip bash-completion util-linux grub-common bsdextrautils mokutil htop iotop mtr iftop sysstat procps iproute2 bind9-dnsutils traceroute tcpdump iputils-ping bridge-utils iptables resolvconf firewalld smartmontools net-tools ncat gnupg2 sbsigntool
     )
 
     log "INFO" "Installing packages: ${packages[*]}"

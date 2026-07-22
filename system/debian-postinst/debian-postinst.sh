@@ -76,7 +76,7 @@ show_help() {
     printf "      Create system backup\n\n"
 
     printf "      Available backup targets:\n"
-    printf "        env  -> user configs (.bashrc, .vimrc, .pythonrc)\n"
+    printf "        env  -> user configs (.bashrc, .vimrc, .pythonrc, .tmux.conf)\n"
     printf "        apt  -> APT repository configuration (/etc/apt)\n\n"
 
     printf "      Default (if no target provided):\n"
@@ -183,6 +183,7 @@ run_backup() {
                 cp -a /root/.bashrc "$dir/" 2>/dev/null || true
                 cp -a /root/.vimrc "$dir/" 2>/dev/null || true
                 cp -a /root/.pythonrc "$dir/" 2>/dev/null || true
+                cp -a /root/.tmux.conf "$dir/" 2>/dev/null || true
                 ;;
 
             apt)
@@ -233,6 +234,7 @@ run_restore() {
                     [[ -f "$source_dir/.bashrc" ]] && cp -f "$source_dir/.bashrc" "$user_home/.bashrc"
                     [[ -f "$source_dir/.vimrc" ]] && cp -f "$source_dir/.vimrc" "$user_home/.vimrc"
                     [[ -f "$source_dir/.pythonrc" ]] && cp -f "$source_dir/.pythonrc" "$user_home/.pythonrc"
+                    [[ -f "$source_dir/.tmux.conf" ]] && cp -f "$source_dir/.tmux.conf" "$user_home/.tmux.conf"
 
                     # fix ownership if not root
                     if [[ "$user_home" != "/root" ]]; then
@@ -240,6 +242,7 @@ run_restore() {
                             "$user_home/.bashrc" \
                             "$user_home/.vimrc" \
                             "$user_home/.pythonrc" 2>/dev/null || true
+                            "$user_home/.tmux.conf" 2>/dev/null || true
                     fi
 
                 done
@@ -334,7 +337,7 @@ validate_project_structure() {
         return 1
     fi
 
-    for f in .bashrc .vimrc .pythonrc; do
+    for f in .bashrc .vimrc .pythonrc .tmux.conf; do
         if [[ ! -f "$env_dir/$f" ]]; then
             error "Missing environment file: $env_dir/$f"
             return 1
@@ -452,7 +455,7 @@ install_essential_packages() {
     info "Installing essential packages..."
 
     local packages=(
-        apt-offline conntrack python3 python3-pip age parted psmisc lsof file man man-db apt-utils vim tree less curl wget gnupg gpg ca-certificates lsb-release apt-transport-https git zip unzip bash-completion util-linux grub-common bsdextrautils mokutil htop iotop mtr iftop sysstat procps iproute2 bind9-dnsutils traceroute tcpdump iputils-ping bridge-utils iptables resolvconf firewalld smartmontools net-tools ncat gnupg2 sbsigntool
+        apt-offline conntrack python3 python3-pip age parted psmisc lsof file man man-db apt-utils vim tree less curl wget gnupg gpg ca-certificates lsb-release apt-transport-https git zip unzip bash-completion util-linux grub-common bsdextrautils mokutil htop iotop mtr iftop sysstat procps iproute2 bind9-dnsutils traceroute tcpdump iputils-ping bridge-utils iptables resolvconf firewalld smartmontools net-tools ncat gnupg2 sbsigntool tmux
     )
 
     log "INFO" "Installing packages: ${packages[*]}"
@@ -591,9 +594,15 @@ configure_user_environment() {
             cp -f "$home_dir/.pythonrc" "$home_dir/.pythonrc.bak.$(date +%Y%m%d%H%M%S)"
         fi
 
+        if [[ -f "$home_dir/.tmux.conf" ]]; then
+            cp -f "$home_dir/.tmux.conf" "$home_dir/.tmux.conf.bak.$(date +%Y%m%d%H%M%S)"
+        fi
+
+
         cp -f "$env_dir/.bashrc" "$home_dir/.bashrc"
         cp -f "$env_dir/.vimrc" "$home_dir/.vimrc"
         cp -f "$env_dir/.pythonrc" "$home_dir/.pythonrc"
+        cp -f "$env_dir/.tmux.conf" "$home_dir/.tmux.conf"
 
         cat >> "$home_dir/.bashrc" << EOF
 
@@ -603,12 +612,14 @@ EOF
         chown "$user:$user_group" \
             "$home_dir/.bashrc" \
             "$home_dir/.vimrc" \
-            "$home_dir/.pythonrc"
+            "$home_dir/.pythonrc" \
+            "$home_dir/.tmux.conf"
 
         chmod 644 \
             "$home_dir/.bashrc" \
             "$home_dir/.vimrc" \
-            "$home_dir/.pythonrc"
+            "$home_dir/.pythonrc" \
+            "$home_dir/.tmux.conf"
 
         success "Environment configured for $user"
         log "INFO" "Environment configured for $user"

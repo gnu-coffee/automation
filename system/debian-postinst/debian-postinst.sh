@@ -350,7 +350,7 @@ validate_project_structure() {
     fi
 
     for branch in stable testing; do
-        for mirror in debian mobinhost; do
+        for mirror in debian mobinhost shatel; do
 
             local file_path="$repo_dir/$branch/$mirror.sources"
 
@@ -696,6 +696,7 @@ run_wizard() {
             question "Repository source:"
             echo "      [1] Debian Official"
             echo "      [2] Mobinhost Mirror"
+            echo "      [3] Shatel Mirror"
         
             read -rp "          Select option: " MIRROR_CHOICE
 
@@ -708,6 +709,11 @@ run_wizard() {
                     MIRROR="mobinhost"
                     break
                     ;;
+                3)
+                    MIRROR="shatel"
+                    break
+                    ;;
+
                 *)
                     error "Invalid mirror!"
                     ;;

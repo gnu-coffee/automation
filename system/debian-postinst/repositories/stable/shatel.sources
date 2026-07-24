@@ -1,0 +1,11 @@
+Types: deb deb-src
+URIs: https://mirror.shatel.ir/debian
+Suites: stable stable-updates stable-backports
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+
+Types: deb deb-src
+URIs: https://mirror.shatel.ir/debian-security
+Suites: stable-security
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg

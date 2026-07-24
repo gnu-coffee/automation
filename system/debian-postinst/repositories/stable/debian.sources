@@ -1,18 +1,6 @@
 Types: deb deb-src
 URIs: https://deb.debian.org/debian
-Suites: stable
-Components: main
-Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
-
-Types: deb deb-src
-URIs: https://deb.debian.org/debian
-Suites: stable-updates
-Components: main
-Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
-
-Types: deb deb-src
-URIs: https://deb.debian.org/debian
-Suites: stable-backports
+Suites: stable stable-updates stable-backports
 Components: main
 Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 

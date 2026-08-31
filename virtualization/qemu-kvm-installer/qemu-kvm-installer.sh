@@ -108,6 +108,7 @@ PACKAGES=(
     qemu-kvm
     libvirt-daemon-system
     libvirt-clients
+    virtinst
     bridge-utils
     qemu-guest-agent
     virt-manager

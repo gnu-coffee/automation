@@ -106,19 +106,19 @@ fi
 # --- Install QEMU/KVM and related packages ---
 PACKAGES=(
     qemu-kvm
+    qemu-utils
+    virt-manager
     libvirt-daemon-system
     libvirt-clients
-    virtinst
-    bridge-utils
-    qemu-guest-agent
-    virt-manager
-    cpu-checker
-    hwloc
     libguestfs-tools
+    virtinst
     virt-top
     virtiofsd
-    virtinst
     virt-viewer
+    ovmf 
+    swtpm
+    cpu-checker
+    hwloc
 )
 
 for pkg in "${PACKAGES[@]}"; do
